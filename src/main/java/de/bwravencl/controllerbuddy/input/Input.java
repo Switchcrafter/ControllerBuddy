@@ -28,7 +28,6 @@ import static org.lwjgl.glfw.GLFW.glfwGetGamepadState;
 import static org.lwjgl.glfw.GLFW.glfwGetJoystickGUID;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -42,6 +41,9 @@ import java.util.stream.Collectors;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import org.hid4java.HidDevice;
+import org.hid4java.HidManager;
+import org.hid4java.HidServices;
 import org.lwjgl.glfw.GLFWGamepadState;
 
 import de.bwravencl.controllerbuddy.gui.Main;
@@ -52,10 +54,6 @@ import de.bwravencl.controllerbuddy.input.action.IInitializationAction;
 import de.bwravencl.controllerbuddy.input.action.IResetableAction;
 import de.bwravencl.controllerbuddy.input.action.ISuspendableAction;
 import de.bwravencl.controllerbuddy.output.OutputThread;
-import purejavahidapi.HidDevice;
-import purejavahidapi.HidDeviceInfo;
-import purejavahidapi.InputReportListener;
-import purejavahidapi.PureJavaHidApi;
 
 public final class Input {
 
@@ -72,8 +70,6 @@ public final class Input {
 	private static final byte[] DUAL_SHOCK_4_HID_REPORT = new byte[] { (byte) 0x05, (byte) 0xFF, 0x00, 0x00, 0x00, 0x00,
 			(byte) 0x0C, (byte) 0x18, (byte) 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-	private static final int hidReportOffset = Main.windows ? -1 : 0;
 
 	private static float clamp(final float v) {
 		return Math.max(Math.min(v, 1f), -1f);
@@ -152,6 +148,7 @@ public final class Input {
 	private final Set<Integer> offLockKeys = new HashSet<>();
 	private boolean clearOnNextPoll = false;
 	private boolean repeatModeActionWalk = false;
+	private HidServices hidServices;
 	private HidDevice hidDevice;
 	private volatile boolean charging = true;
 	private volatile int batteryState;
@@ -168,50 +165,63 @@ public final class Input {
 
 		final Short dualShock4ProductId = getDualShock4ProductId();
 		if (dualShock4ProductId != null) {
-			final var dualShock4Devices = PureJavaHidApi.enumerateDevices().stream()
-					.filter(hidDeviceInfo -> hidDeviceInfo.getVendorId() == (short) 0x54C
-							&& hidDeviceInfo.getProductId() == dualShock4ProductId)
+			hidServices = HidManager.getHidServices();
+
+			final var dualShock4Devices = hidServices.getAttachedHidDevices().stream()
+					.filter(hidDevice -> hidDevice.getVendorId() == (short) 0x54C
+							&& hidDevice.getProductId() == dualShock4ProductId)
 					.collect(Collectors.toUnmodifiableList());
 			final var count = dualShock4Devices.size();
 
 			if (count > 0) {
 				log.log(Level.INFO, "Found " + count + " DualShock 4 controller(s): "
-						+ dualShock4Devices.stream().map(HidDeviceInfo::getDeviceId).collect(Collectors.joining(", ")));
+						+ dualShock4Devices.stream().map(HidDevice::getId).collect(Collectors.joining(", ")));
 
 				if (count > 1)
 					JOptionPane.showMessageDialog(main.getFrame(),
 							strings.getString("MULTIPLE_DUAL_SHOCK_4_CONTROLLERS_CONNECTED_DIALOG_TEXT"),
 							strings.getString("WARNING_DIALOG_TITLE"), JOptionPane.WARNING_MESSAGE);
 
-				final var hidDeviceInfo = dualShock4Devices.get(0);
-				if (hidDeviceInfo.getVendorId() == (short) 0x54C && hidDeviceInfo.getProductId() == dualShock4ProductId)
-					try {
-						log.log(Level.INFO, "Using DualShock 4 controller " + hidDeviceInfo.getDeviceId());
+				hidDevice = dualShock4Devices.get(0);
+				if (!hidDevice.open()) {
+					System.err.println(hidDevice.getLastErrorMessage());
+					// TODO: error handling
+					hidDevice = null;
+				} else {
+					log.log(Level.INFO, "Using DualShock 4 controller " + hidDevice.getId());
 
-						hidDevice = PureJavaHidApi.openDevice(hidDeviceInfo);
-						resetDualShock4();
+					resetDualShock4();
 
-						hidDevice.setInputReportListener(new InputReportListener() {
+					new Thread() {
 
-							private static final int TOUCHPAD_MAX_DELTA = 150;
-							private static final float TOUCHPAD_CURSOR_SENSITIVITY = 1.25f;
-							private static final float TOUCHPAD_SCROLL_SENSITIVITY = 0.25f;
+						private static final int TOUCHPAD_MAX_DELTA = 150;
+						private static final float TOUCHPAD_CURSOR_SENSITIVITY = 1.25f;
+						private static final float TOUCHPAD_SCROLL_SENSITIVITY = 0.25f;
 
-							private boolean prevTouchpadButtonDown;
-							private boolean prevDown1;
-							private boolean prevDown2;
-							private int prevX1;
-							private int prevY1;
+						private boolean prevTouchpadButtonDown;
+						private boolean prevDown1;
+						private boolean prevDown2;
+						private int prevX1;
+						private int prevY1;
 
-							@Override
-							public void onInputReport(final HidDevice source, final byte Id, final byte[] data,
-									final int len) {
-								final var touchpadButtonDown = (data[7 + hidReportOffset] & 1 << 2 - 1) != 0;
-								final var down1 = data[35 + hidReportOffset] >> 7 != 0 ? false : true;
-								final var down2 = data[39 + hidReportOffset] >> 7 != 0 ? false : true;
-								final var x1 = data[36 + hidReportOffset] + (data[37 + hidReportOffset] & 0xF) * 255;
-								final var y1 = ((data[37 + hidReportOffset] & 0xF0) >> 4)
-										+ data[38 + hidReportOffset] * 16;
+						@Override
+						public void run() {
+							final var data = new byte[39];
+
+							for (;;) {
+								final var bytesRead = hidDevice.read(data);
+								if (bytesRead < 0)
+									// TODO: error handling
+									return;
+								else if (bytesRead != data.length)
+									// TODO: error handling
+									continue;
+
+								final var touchpadButtonDown = (data[7] & 1 << 2 - 1) != 0;
+								final var down1 = data[35] >> 7 != 0 ? false : true;
+								final var down2 = data[39] >> 7 != 0 ? false : true;
+								final var x1 = data[36] + (data[37] & 0xF) * 255;
+								final var y1 = ((data[37] & 0xF0) >> 4) + data[38] * 16;
 
 								if (touchpadButtonDown)
 									synchronized (downMouseButtons) {
@@ -255,11 +265,10 @@ public final class Input {
 
 								setBatteryState(battery);
 							}
+						}
 
-						});
-					} catch (final IOException e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
-					}
+					}.start();
+				}
 			}
 		}
 	}
@@ -270,6 +279,9 @@ public final class Input {
 			hidDevice.close();
 			hidDevice = null;
 		}
+
+		if (hidServices != null)
+			hidServices.shutdown();
 	}
 
 	public EnumMap<VirtualAxis, Integer> getAxes() {
@@ -507,18 +519,9 @@ public final class Input {
 	}
 
 	private boolean sendDualShock4HidReport() {
-		var sent = false;
+		final var bytesSent = hidDevice.write(dualShock4HidReport, dualShock4HidReport.length, (byte) 0x00);
 
-		for (var i = 0; i < 2; i++) {
-			final var dataLength = dualShock4HidReport.length + hidReportOffset;
-			final var dataSent = hidDevice.setOutputReport(dualShock4HidReport[0],
-					Arrays.copyOfRange(dualShock4HidReport, 0 - hidReportOffset, dualShock4HidReport.length),
-					dataLength);
-
-			sent |= dataSent == dataLength;
-		}
-
-		return sent;
+		return bytesSent == dualShock4HidReport.length;
 	}
 
 	public void setAxis(final VirtualAxis virtualAxis, float value, final boolean hapticFeedback,

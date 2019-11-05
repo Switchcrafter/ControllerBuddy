@@ -25,17 +25,17 @@ ext {
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' }
+    maven { url 'https://raw.github.com/bitcoin-solutions/mbhd-maven/master/snapshots' }
 }
 
 dependencies {
     implementation 'commons-cli:commons-cli:1.4',
                    'com.formdev:flatlaf:0.17',
-                   'com.github.git-moss:purejavahidapi:9e9d54b33d',
                    'com.google.code.gson:gson:2.8.6',
                    'io.github.classgraph:classgraph:4.8.53',
                    "net.java.dev.jna:jna:$jnaVersion",
                    "net.java.dev.jna:jna-platform:$jnaVersion",
+                   'org.hid4java:hid4java:develop-SNAPSHOT',
                    "org.lwjgl:lwjgl:$lwjglVersion",
                    "org.lwjgl:lwjgl-glfw:$lwjglVersion",
                    "org.lwjgl:lwjgl-opengl:$lwjglVersion",
@@ -133,7 +133,6 @@ distTar.enabled = false
 task distZip(type: Zip, overwrite: true) {
     dependsOn jpackage
     from "$tmpDir"
-//    destinationDirectory file("$buildDir/$distsDirName")
     include "$project.name/**"
 }
 
