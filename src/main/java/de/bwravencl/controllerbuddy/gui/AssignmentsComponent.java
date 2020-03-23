@@ -1,4 +1,4 @@
-/* Copyright (C) 2019  Matteo Hausner
+/* Copyright (C) 2020  Matteo Hausner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_GAMEPAD_BUTTON_Y;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
@@ -67,6 +68,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.OverlayLayout;
 import javax.swing.UIManager;
+import javax.swing.plaf.UIResource;
 
 import com.formdev.flatlaf.ui.FlatButtonUI;
 import com.formdev.flatlaf.ui.FlatUIUtils;
@@ -87,7 +89,6 @@ final class AssignmentsComponent extends JScrollPane {
 			CompoundButtonLocation(final float startDegree) {
 				this.startDegree = startDegree;
 			}
-
 		}
 
 		private static final long serialVersionUID = 5560396295119690740L;
@@ -110,8 +111,10 @@ final class AssignmentsComponent extends JScrollPane {
 			preferredSize = parentPanel.getPreferredSize();
 			this.buttonLocation = buttonLocation;
 			this.peer = peer;
-			if (peer != null)
+			if (peer != null) {
 				peer.setPeer(this);
+				setModel(peer.getModel());
+			}
 
 			if (component.type == ComponentType.BUTTON) {
 				if (component.index == GLFW_GAMEPAD_BUTTON_LEFT_THUMB) {
@@ -122,25 +125,21 @@ final class AssignmentsComponent extends JScrollPane {
 					text = strings.getString("RIGHT_STICK");
 				} else
 					throw new IllegalArgumentException();
-			} else
+			} else if (peer != null)
 				switch (component.index) {
-				case GLFW_GAMEPAD_AXIS_LEFT_X:
-					setAction(new EditComponentAction(main, strings.getString("LEFT_STICK_X_AXIS"), component));
-					break;
-				case GLFW_GAMEPAD_AXIS_LEFT_Y:
-					setAction(new EditComponentAction(main, strings.getString("LEFT_STICK_Y_AXIS"), component));
-					break;
-				case GLFW_GAMEPAD_AXIS_RIGHT_X:
-					setAction(new EditComponentAction(main, strings.getString("RIGHT_STICK_X_AXIS"), component));
-					break;
-				case GLFW_GAMEPAD_AXIS_RIGHT_Y:
-					setAction(new EditComponentAction(main, strings.getString("RIGHT_STICK_Y_AXIS"), component));
-					break;
-				default:
-					throw new IllegalArgumentException();
+				case GLFW_GAMEPAD_AXIS_LEFT_X -> setAction(
+						new EditComponentAction(main, strings.getString("LEFT_STICK_X_AXIS"), component));
+				case GLFW_GAMEPAD_AXIS_LEFT_Y -> setAction(
+						new EditComponentAction(main, strings.getString("LEFT_STICK_Y_AXIS"), component));
+				case GLFW_GAMEPAD_AXIS_RIGHT_X -> setAction(
+						new EditComponentAction(main, strings.getString("RIGHT_STICK_X_AXIS"), component));
+				case GLFW_GAMEPAD_AXIS_RIGHT_Y -> setAction(
+						new EditComponentAction(main, strings.getString("RIGHT_STICK_Y_AXIS"), component));
+				default -> throw new IllegalArgumentException();
 				}
 
 			setIcon(new Icon() {
+
 				@Override
 				public int getIconHeight() {
 					return preferredSize.height;
@@ -179,8 +178,8 @@ final class AssignmentsComponent extends JScrollPane {
 						final var stringWidth = metrics.stringWidth(text);
 
 						final var textRect = new Rectangle(tx, ty - ascent, stringWidth, textHeight);
-						FlatButtonUI.paintText(g, CompoundButton.this, textRect, text,
-								isEnabled() ? getForeground() : disabledText);
+
+						paintText(g, textRect, text);
 					}
 				}
 			});
@@ -252,7 +251,6 @@ final class AssignmentsComponent extends JScrollPane {
 		public void setText(final String text) {
 			this.text = text;
 		}
-
 	}
 
 	private static abstract class CustomButton extends JButton {
@@ -274,6 +272,7 @@ final class AssignmentsComponent extends JScrollPane {
 		private Color defaultBorderColor;
 		private Color defaultHoverBorderColor;
 		private Color defaultFocusedBorderColor;
+		protected boolean defaultBoldText;
 		Color disabledText;
 
 		boolean contentAreaFilled = true;
@@ -321,6 +320,21 @@ final class AssignmentsComponent extends JScrollPane {
 			return false;
 		}
 
+		void paintText(final Graphics g, final Rectangle textRect, final String text) {
+			if (defaultBoldText && isDefaultButton() && getFont() instanceof UIResource) {
+				final Font boldFont = g.getFont().deriveFont(Font.BOLD);
+				g.setFont(boldFont);
+
+				final int boldWidth = getFontMetrics(boldFont).stringWidth(text);
+				if (boldWidth > textRect.width) {
+					textRect.x -= (boldWidth - textRect.width) / 2;
+					textRect.width = boldWidth;
+				}
+			}
+
+			FlatButtonUI.paintText(g, this, textRect, text, isEnabled() ? getForeground() : disabledText);
+		}
+
 		@Override
 		public void setContentAreaFilled(final boolean b) {
 			contentAreaFilled = b;
@@ -343,6 +357,7 @@ final class AssignmentsComponent extends JScrollPane {
 			defaultHoverBorderColor = UIManager.getColor("Button.default.hoverBorderColor");
 			defaultFocusedBorderColor = UIManager.getColor("Button.default.focusedBorderColor");
 			disabledText = UIManager.getColor("Button.disabledText");
+			defaultBoldText = UIManager.getBoolean("Button.default.boldText");
 		}
 
 		@Override
@@ -350,7 +365,6 @@ final class AssignmentsComponent extends JScrollPane {
 			super.updateUI();
 			updateTheme();
 		}
-
 	}
 
 	@SuppressWarnings("serial")
@@ -375,7 +389,6 @@ final class AssignmentsComponent extends JScrollPane {
 			final EditActionsDialog editComponentDialog = new EditActionsDialog(main, component, name);
 			editComponentDialog.setVisible(true);
 		}
-
 	}
 
 	private static final class FourWay extends JPanel {
@@ -405,7 +418,6 @@ final class AssignmentsComponent extends JScrollPane {
 			constraints.gridy = 2;
 			add(createComponentButton(main, downTitle, downComponent), constraints);
 		}
-
 	}
 
 	private static final class Stick extends JPanel {
@@ -442,7 +454,6 @@ final class AssignmentsComponent extends JScrollPane {
 			add(new CompoundButton(main, this, yComponent, CompoundButton.CompoundButtonLocation.South,
 					northernButton));
 		}
-
 	}
 
 	private static final long serialVersionUID = -4096911611882875787L;
@@ -520,7 +531,7 @@ final class AssignmentsComponent extends JScrollPane {
 						final int ty = height / 2 + ascent - textHeight / 2;
 
 						final var textRect = new Rectangle(tx, ty - ascent, stringWidth, textHeight);
-						FlatButtonUI.paintText(g2d, this, textRect, text, isEnabled() ? getForeground() : disabledText);
+						paintText(g, textRect, text);
 					}
 				}
 
@@ -541,7 +552,6 @@ final class AssignmentsComponent extends JScrollPane {
 					checkDimensionIsSquare(preferredSize);
 					super.setPreferredSize(preferredSize);
 				}
-
 			};
 		} else {
 			round = false;
@@ -635,5 +645,4 @@ final class AssignmentsComponent extends JScrollPane {
 	public void setEnabled(final boolean enabled) {
 		setEnabledRecursive(assignmentsPanel, enabled);
 	}
-
 }

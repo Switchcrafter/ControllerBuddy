@@ -1,4 +1,4 @@
-/* Copyright (C) 2019  Matteo Hausner
+/* Copyright (C) 2020  Matteo Hausner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -246,14 +246,28 @@ public final class Input {
 										scrollClicks = (int) (-dY1 * TOUCHPAD_SCROLL_SENSITIVITY);
 								}
 
+								if (down1 && prevDown1) {
+									final var dX1 = x1 - prevX1;
+									final var dY1 = y1 - prevY1;
+
+									if (!prevDown2 || touchpadButtonDown) {
+										if (prevX1 > 0 && Math.abs(dX1) < TOUCHPAD_MAX_DELTA)
+											cursorDeltaX = (int) (dX1 * TOUCHPAD_CURSOR_SENSITIVITY);
+
+										if (prevY1 > 0 && Math.abs(dY1) < TOUCHPAD_MAX_DELTA)
+											cursorDeltaY = (int) (dY1 * TOUCHPAD_CURSOR_SENSITIVITY);
+									} else if (prevY1 > 0 && Math.abs(dY1) < TOUCHPAD_MAX_DELTA)
+										scrollClicks = (int) (-dY1 * TOUCHPAD_SCROLL_SENSITIVITY);
+								}
+
 								prevTouchpadButtonDown = touchpadButtonDown;
 								prevDown1 = down1;
 								prevDown2 = down2;
 								prevX1 = x1;
 								prevY1 = y1;
 
-								final var cableConnected = (data[29] >> 4 & 0x01) != 0;
-								var battery = data[29] & 0x0F;
+								final var cableConnected = (data[30] >> 4 & 0x01) != 0;
+								var battery = data[30] & 0x0F;
 
 								setCharging(cableConnected);
 
@@ -266,7 +280,6 @@ public final class Input {
 								setBatteryState(battery);
 							}
 						}
-
 					}.start();
 				}
 			}
@@ -276,7 +289,10 @@ public final class Input {
 	public void deInit() {
 		if (hidDevice != null) {
 			resetDualShock4();
-			hidDevice.close();
+			try {
+				hidDevice.close();
+			} catch (final IllegalStateException e) {
+			}
 			hidDevice = null;
 		}
 
@@ -696,5 +712,4 @@ public final class Input {
 			sendDualShock4HidReport();
 		}
 	}
-
 }

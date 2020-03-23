@@ -1,4 +1,4 @@
-/* Copyright (C) 2019  Matteo Hausner
+/* Copyright (C) 2020  Matteo Hausner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 
 package de.bwravencl.controllerbuddy.input.action;
 
+import static de.bwravencl.controllerbuddy.gui.Main.strings;
+
 import de.bwravencl.controllerbuddy.input.Input;
 import de.bwravencl.controllerbuddy.input.action.annotation.Action;
 import de.bwravencl.controllerbuddy.input.action.annotation.Action.ActionCategory;
@@ -28,7 +30,34 @@ import de.bwravencl.controllerbuddy.input.action.gui.LongPressEditorBuilder;
 public final class ButtonToSelectOnScreenKeyboardKeyAction implements IButtonToAction {
 
 	public enum Direction {
-		UP, DOWN, LEFT, RIGHT
+		UP {
+
+			@Override
+			public String toString() {
+				return strings.getString("DIRECTION_UP");
+			}
+		},
+		DOWN {
+
+			@Override
+			public String toString() {
+				return strings.getString("DIRECTION_DOWN");
+			}
+		},
+		LEFT {
+
+			@Override
+			public String toString() {
+				return strings.getString("DIRECTION_LEFT");
+			}
+		},
+		RIGHT {
+
+			@Override
+			public String toString() {
+				return strings.getString("DIRECTION_RIGHT");
+			}
+		}
 	}
 
 	private static final long MIN_ELAPSE_TIME = 150L;
@@ -56,18 +85,10 @@ public final class ButtonToSelectOnScreenKeyboardKeyAction implements IButtonToA
 				final var onScreenKeyboard = input.getMain().getOnScreenKeyboard();
 
 				switch (direction) {
-				case UP:
-					onScreenKeyboard.moveSelectorUp();
-					break;
-				case DOWN:
-					onScreenKeyboard.moveSelectorDown();
-					break;
-				case LEFT:
-					onScreenKeyboard.moveSelectorLeft();
-					break;
-				case RIGHT:
-					onScreenKeyboard.moveSelectorRight();
-					break;
+				case UP -> onScreenKeyboard.moveSelectorUp();
+				case DOWN -> onScreenKeyboard.moveSelectorDown();
+				case LEFT -> onScreenKeyboard.moveSelectorLeft();
+				case RIGHT -> onScreenKeyboard.moveSelectorRight();
 				}
 
 				lastPressTime = currentTime;
@@ -92,5 +113,4 @@ public final class ButtonToSelectOnScreenKeyboardKeyAction implements IButtonToA
 	public void setLongPress(final boolean longPress) {
 		this.longPress = longPress;
 	}
-
 }

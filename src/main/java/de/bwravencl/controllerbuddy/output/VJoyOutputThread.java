@@ -1,4 +1,4 @@
-/* Copyright (C) 2019  Matteo Hausner
+/* Copyright (C) 2020  Matteo Hausner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -97,18 +97,12 @@ public abstract class VJoyOutputThread extends OutputThread {
 		final var input = new INPUT();
 		input.type = new DWORD(INPUT.INPUT_MOUSE);
 		input.input.setType(MOUSEINPUT.class);
+
 		switch (button) {
-		case 1:
-			input.input.mi.dwFlags = down ? new DWORD(MOUSEEVENTF_LEFTDOWN) : new DWORD(MOUSEEVENTF_LEFTUP);
-			break;
-		case 2:
-			input.input.mi.dwFlags = down ? new DWORD(MOUSEEVENTF_RIGHTDOWN) : new DWORD(MOUSEEVENTF_RIGHTUP);
-			break;
-		case 3:
-			input.input.mi.dwFlags = down ? new DWORD(MOUSEEVENTF_MIDDLEDOWN) : new DWORD(MOUSEEVENTF_MIDDLEUP);
-			break;
-		default:
-			throw new IllegalArgumentException();
+		case 1 -> input.input.mi.dwFlags = down ? new DWORD(MOUSEEVENTF_LEFTDOWN) : new DWORD(MOUSEEVENTF_LEFTUP);
+		case 2 -> input.input.mi.dwFlags = down ? new DWORD(MOUSEEVENTF_RIGHTDOWN) : new DWORD(MOUSEEVENTF_RIGHTUP);
+		case 3 -> input.input.mi.dwFlags = down ? new DWORD(MOUSEEVENTF_MIDDLEDOWN) : new DWORD(MOUSEEVENTF_MIDDLEUP);
+		default -> throw new IllegalArgumentException();
 		}
 
 		User32.INSTANCE.SendInput(new DWORD(1L), new INPUT[] { input }, input.size());
@@ -128,6 +122,7 @@ public abstract class VJoyOutputThread extends OutputThread {
 		} catch (final Throwable t) {
 			final var defaultPath = System.getenv("ProgramFiles") + File.separator + "vJoy";
 			log.log(Level.WARNING, "Could not retrieve vJoy installation path from registry", t);
+
 			return defaultPath;
 		}
 	}
@@ -213,6 +208,7 @@ public abstract class VJoyOutputThread extends OutputThread {
 	int cursorDeltaX;
 	int cursorDeltaY;
 	int scrollClicks;
+	private long prevKeyInputTime = 0;
 	final Set<Integer> oldDownMouseButtons = new HashSet<>();
 	final Set<Integer> newUpMouseButtons = new HashSet<>();
 	final Set<Integer> newDownMouseButtons = new HashSet<>();
@@ -313,8 +309,8 @@ public abstract class VJoyOutputThread extends OutputThread {
 			final var hasAxisRZ = vJoy.GetVJDAxisExist(vJoyDevice, IVjoyInterface.HID_USAGE_RZ).booleanValue();
 			final var hasAxisSL0 = vJoy.GetVJDAxisExist(vJoyDevice, IVjoyInterface.HID_USAGE_SL0).booleanValue();
 			final var hasAxisSL1 = vJoy.GetVJDAxisExist(vJoyDevice, IVjoyInterface.HID_USAGE_SL1).booleanValue();
-			if (!(hasAxisX && hasAxisY && hasAxisZ && hasAxisRX && hasAxisRY && hasAxisRZ && hasAxisSL0
-					&& hasAxisSL1)) {
+			if (!hasAxisX || !hasAxisY || !hasAxisZ || !hasAxisRX || !hasAxisRY || !hasAxisRZ || !hasAxisSL0
+					|| !hasAxisSL1) {
 				final var missingAxes = new ArrayList<String>();
 				if (!hasAxisX)
 					missingAxes.add("X");
@@ -547,8 +543,13 @@ public abstract class VJoyOutputThread extends OutputThread {
 				for (final var c : newDownModifiers)
 					doKeyboardInput(c, true);
 
-				for (final var c : newDownNormalKeys)
-					doKeyboardInput(c, true);
+				final var currentTime = System.currentTimeMillis();
+				if (currentTime - prevKeyInputTime > input.getProfile().getKeyRepeatInterval()) {
+					for (final var c : newDownNormalKeys)
+						doKeyboardInput(c, true);
+
+					prevKeyInputTime = currentTime;
+				}
 
 				for (final var e : onLockKeys)
 					setLockKeyState(e, true);
@@ -593,5 +594,4 @@ public abstract class VJoyOutputThread extends OutputThread {
 			}
 		}
 	}
-
 }

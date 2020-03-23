@@ -1,4 +1,4 @@
-/* Copyright (C) 2019  Matteo Hausner
+/* Copyright (C) 2020  Matteo Hausner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -113,7 +113,6 @@ public final class EditActionsDialog extends JDialog {
 				log.log(Level.SEVERE, e1.getMessage(), e1);
 			}
 		}
-
 	}
 
 	private static final class AssignedAction {
@@ -128,7 +127,6 @@ public final class EditActionsDialog extends JDialog {
 		public String toString() {
 			return IAction.getLabel(action.getClass());
 		}
-
 	}
 
 	private static final class AvailableAction {
@@ -143,7 +141,6 @@ public final class EditActionsDialog extends JDialog {
 		public String toString() {
 			return IAction.getLabel(actionClass);
 		}
-
 	}
 
 	private final class CancelAction extends AbstractAction {
@@ -159,7 +156,6 @@ public final class EditActionsDialog extends JDialog {
 		public void actionPerformed(final ActionEvent e) {
 			closeDialog();
 		}
-
 	}
 
 	private final class OKAction extends AbstractAction {
@@ -199,7 +195,6 @@ public final class EditActionsDialog extends JDialog {
 
 			closeDialog();
 		}
-
 	}
 
 	private final class RemoveActionAction extends AbstractAction {
@@ -233,7 +228,6 @@ public final class EditActionsDialog extends JDialog {
 			updateAvailableActions();
 			updateAssignedActions();
 		}
-
 	}
 
 	private static final Logger log = Logger.getLogger(EditActionsDialog.class.getName());
@@ -515,8 +509,8 @@ public final class EditActionsDialog extends JDialog {
 						if (fieldType == Void.class)
 							fieldType = field.getType();
 
-						final var constructor = editorBuilderClass.getDeclaredConstructor(
-								new Class[] { EditActionsDialog.class, IAction.class, String.class, Class.class });
+						final var constructor = editorBuilderClass.getDeclaredConstructor(EditActionsDialog.class,
+								IAction.class, String.class, Class.class);
 						final var editorBuilder = constructor.newInstance(this, selectedAssignedAction.action,
 								fieldName, fieldType);
 
@@ -603,5 +597,4 @@ public final class EditActionsDialog extends JDialog {
 
 		availableActionsList.setListData(availableActions.toArray(new AvailableAction[availableActions.size()]));
 	}
-
 }

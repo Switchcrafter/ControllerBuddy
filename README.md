@@ -7,13 +7,13 @@ GNU General Public License v2.0
 #### Download and Installation:
 1. First ensure you have correctly installed [vJoy 2.1](http://vjoystick.sourceforge.net) on your system.
 2. [Click here](https://github.com/bwRavencl/ControllerBuddy/releases/latest) and download the latest build of ControllerBuddy for Windows as a ZIP archive.
-3. Extract the ControllerBuddy directory from the archive to any desired location on your hard-drive.
-4. Run `ControllerBuddy.exe` inside the ControllerBuddy directory.
+3. Extract the `ControllerBuddy` directory from the archive to any desired location on your hard-drive.
+4. Run `ControllerBuddy.exe` inside the extracted `ControllerBuddy` directory.
 
 #### Description:
 ControllerBuddy is a highly advanced gamepad mapping software, which supports the creation of input profiles for complex target applications such as flight simulators.  
 In addition to the simplistic mapping of buttons and axes of a physical game-controller to keyboard and mouse input, ControllerBuddy also supports the feeding of input commands to a virtual joystick, provided by the awesome [vJoy](http://vjoystick.sourceforge.net) device driver created by Shaul Eizikovich.  
-The goal of this is application is to allow controlling target applications without having the user take off their hands from the gamepad to reach for the keyboard or mouse.
+The goal ControllerBuddy is to allow controlling target applications without having the user take off their hands from the gamepad to reach for the keyboard or mouse.
 
 #### Features:
 - Maps gamepad axes and buttons to highly customizable actions:
@@ -70,7 +70,7 @@ A profile has the following general structure:
     - X Button
        - Mode Action (switches to "Yet another Mode" and back)
     - Y Button
-       - Cycle Action (performs Action 1, when pressed again Action 2, then Action 3, then starts over with Action 1)
+       - Cycle Action (performs Action 1, when pressed again Action 2, then Action 3, then starts over)
          - Action 1
          - Action 2
          - Action 3
@@ -110,19 +110,19 @@ vJoy Device Driver   Win32 API     vJoy Device Driver   Win32 API
 ```
 
 #### Example Screenshots:
-![Modes Tab](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_1.png)
+![Modes Tab](./example_screenshot_1.png)
 
-![Assignments Tab](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_2.png)
+![Assignments Tab](./example_screenshot_2.png)
 
-![Component Editor - Button](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_3.png)
+![Component Editor - Button](./example_screenshot_3.png)
 
-![Component Editor - Axis](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_4.png)
+![Component Editor - Axis](./example_screenshot_4.png)
 
-![Dark Mode](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_5.png)
+![Dark Mode](./example_screenshot_5.png)
 
-![Overlay](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_6.png)
+![Overlay](./example_screenshot_6.png)
 
-![VR Overlay](https://github.com/bwRavencl/ControllerBuddy/raw/master/example_screenshot_7.png)
+![VR Overlay](./example_screenshot_7.png)
 
 #### Command Line Parameters:
 
@@ -135,12 +135,11 @@ vJoy Device Driver   Win32 API     vJoy Device Driver   Win32 API
 
 If an instance of ControllerBuddy is already running, launching a second instance with the parameters denoted as "available for scripting" will trigger the corresponding action in the first instance and immediately shutdown the second instance.  
 This can be used to integrate ControllerBuddy into third party applications.  
-For more information check out [this](https://github.com/bwRavencl/ControllerBuddy-DCS-Integration) exemplary integration of ControllerBuddy into DCS World.
+For more information check out [this](https://github.com/bwRavencl/ControllerBuddy-DCS-Integration) exemplary integration of ControllerBuddy into [DCS World](https://www.digitalcombatsimulator.com).
 
 #### Dependencies:
 ControllerBuddy depends on the following awesome software technologies and libraries:
-- [OpenJDK 13](https://jdk.java.net/13/)
-- [OpenJDK with jpackage support](https://jdk.java.net/jpackage/)
+- [OpenJDK 14](https://jdk.java.net/14)
 - [Apache Commons CLI](https://commons.apache.org/proper/commons-cli)
 - [ClassGraph](https://github.com/classgraph/classgraph)
 - [FlatLaf](https://www.formdev.com/flatlaf/)
@@ -151,11 +150,13 @@ ControllerBuddy depends on the following awesome software technologies and libra
 
 #### Building:
 If you want to build ControllerBuddy from its source code this section might be helpful to get you started.  
-ControllerBuddy uses the Gradle build system, the following tasks are supported:
+ControllerBuddy uses the Gradle build system, the following Gradle tasks are supported:
 
 | Task                             | Command                 |
 | -------------------------------- | ----------------------- |
 | Generate version source file     | gradlew generateVersion |
+| Run SpotBugs and Spotless        | gradlew check           |
+| Apply Spotless formatting        | gradlew spotlessApply   |
 | Run ControllerBuddy              | gradlew run             |
 | Install a jpackage image         | gradlew installDist     |
 | Create a zipped jpackage image   | gradlew distZip         |

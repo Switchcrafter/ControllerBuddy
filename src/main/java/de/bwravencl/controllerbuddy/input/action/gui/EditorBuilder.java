@@ -1,4 +1,4 @@
-/* Copyright (C) 2019  Matteo Hausner
+/* Copyright (C) 2020  Matteo Hausner
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,6 @@ public abstract class EditorBuilder {
 			this.action = action;
 			this.setterMethod = setterMethod;
 		}
-
 	}
 
 	static abstract class PropertySetterChangeListener implements ChangeListener {
@@ -54,7 +53,6 @@ public abstract class EditorBuilder {
 			this.action = action;
 			this.setterMethod = setterMethod;
 		}
-
 	}
 
 	protected final EditActionsDialog editActionsDialog;
@@ -74,9 +72,9 @@ public abstract class EditorBuilder {
 
 		final var fieldNameChars = fieldName.toCharArray();
 		fieldNameChars[0] = Character.toUpperCase(fieldNameChars[0]);
-		final var capizalizedFieldName = new String(fieldNameChars);
+		final var capizalizedFieldName = String.valueOf(fieldNameChars);
 
-		setterMethod = clazz.getMethod("set" + capizalizedFieldName, new Class[] { fieldType });
+		setterMethod = clazz.getMethod("set" + capizalizedFieldName, fieldType);
 
 		final var getterMethodPrefix = fieldType == boolean.class || fieldType == Boolean.class ? "is" : "get";
 		final var modeProperty = fieldType == Mode.class;
@@ -89,5 +87,4 @@ public abstract class EditorBuilder {
 	}
 
 	public abstract void buildEditor(final JPanel parentPanel);
-
 }
