@@ -225,6 +225,22 @@ public final class Input {
 									continue;
 								}
 
+								final var cableConnected = (data[30] >> 4 & 0x01) != 0;
+								var battery = data[30] & 0x0F;
+
+								setCharging(cableConnected);
+
+								if (!cableConnected)
+									battery++;
+
+								battery = Math.min(battery, 10);
+								battery *= 10;
+
+								setBatteryState(battery);
+
+								if (!main.isLocalThreadActive() && !main.isServerThreadActive())
+									continue;
+
 								final var touchpadButtonDown = (data[7] & 1 << 2 - 1) != 0;
 								final var down1 = data[35] >> 7 != 0 ? false : true;
 								final var down2 = data[39] >> 7 != 0 ? false : true;
@@ -273,19 +289,6 @@ public final class Input {
 								prevDown2 = down2;
 								prevX1 = x1;
 								prevY1 = y1;
-
-								final var cableConnected = (data[30] >> 4 & 0x01) != 0;
-								var battery = data[30] & 0x0F;
-
-								setCharging(cableConnected);
-
-								if (!cableConnected)
-									battery++;
-
-								battery = Math.min(battery, 10);
-								battery *= 10;
-
-								setBatteryState(battery);
 							}
 						}
 					}.start();
