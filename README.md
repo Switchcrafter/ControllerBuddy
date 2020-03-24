@@ -144,9 +144,9 @@ ControllerBuddy depends on the following awesome software technologies and libra
 - [ClassGraph](https://github.com/classgraph/classgraph)
 - [FlatLaf](https://www.formdev.com/flatlaf/)
 - [Gson](https://github.com/google/gson)
+- [hid4java](https://github.com/gary-rowe/hid4java)
 - [Java Native Access (JNA)](https://github.com/java-native-access/jna)
 - [LWJGL - Lightweight Java Game Library 3](https://www.lwjgl.org)
-- [Pure Java HID-API](https://github.com/nyholku/purejavahidapi)
 
 #### Building:
 If you want to build ControllerBuddy from its source code this section might be helpful to get you started.  

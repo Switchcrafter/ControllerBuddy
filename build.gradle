@@ -27,17 +27,17 @@ ext {
 
 repositories {
     mavenCentral()
-    maven { url 'https://raw.github.com/bitcoin-solutions/mbhd-maven/master/snapshots' }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
 	implementation 'commons-cli:commons-cli:1.4',
 			'com.formdev:flatlaf:0.28',
+			'com.github.gary-rowe:hid4java:3adcb32830',
 			'com.google.code.gson:gson:2.8.6',
 			'io.github.classgraph:classgraph:4.8.65',
 			"net.java.dev.jna:jna:$jnaVersion",
 			"net.java.dev.jna:jna-platform:$jnaVersion",
-			'org.hid4java:hid4java:develop-SNAPSHOT',
 			"org.lwjgl:lwjgl:$lwjglVersion",
 			"org.lwjgl:lwjgl-glfw:$lwjglVersion",
 			"org.lwjgl:lwjgl-opengl:$lwjglVersion",

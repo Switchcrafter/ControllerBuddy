@@ -67,9 +67,9 @@ public final class Input {
 	private static final float ABORT_SUSPENSION_ACTION_DEADZONE = 0.25f;
 
 	public static final int MAX_N_BUTTONS = 128;
-	private static final byte[] DUAL_SHOCK_4_HID_REPORT = new byte[] { (byte) 0x05, (byte) 0xFF, 0x00, 0x00, 0x00, 0x00,
-			(byte) 0x0C, (byte) 0x18, (byte) 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	private static final byte[] DUAL_SHOCK_4_HID_REPORT = new byte[] { (byte) 0xFF, 0x00, 0x00, 0x00, 0x00, (byte) 0x0C,
+			(byte) 0x18, (byte) 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 	private static float clamp(final float v) {
 		return Math.max(Math.min(v, 1f), -1f);
@@ -184,8 +184,7 @@ public final class Input {
 
 				hidDevice = dualShock4Devices.get(0);
 				if (!hidDevice.open()) {
-					System.err.println(hidDevice.getLastErrorMessage());
-					// TODO: error handling
+					log.log(Level.WARNING, "Error while opening HID device: " + hidDevice.getLastErrorMessage());
 					hidDevice = null;
 				} else {
 					log.log(Level.INFO, "Using DualShock 4 controller " + hidDevice.getId());
@@ -206,16 +205,25 @@ public final class Input {
 
 						@Override
 						public void run() {
-							final var data = new byte[39];
+							final var data = new byte[40];
 
 							for (;;) {
-								final var bytesRead = hidDevice.read(data);
-								if (bytesRead < 0)
-									// TODO: error handling
+								int bytesRead;
+								synchronized (hidDevice) {
+									if (hidDevice == null || !hidDevice.isOpen())
+										return;
+
+									bytesRead = hidDevice.read(data);
+								}
+
+								if (bytesRead < 0) {
+									log.log(Level.WARNING, "Could not read HID report");
 									return;
-								else if (bytesRead != data.length)
-									// TODO: error handling
+								} else if (bytesRead != data.length) {
+									log.log(Level.WARNING,
+											"Received invalid HID input report with length " + bytesRead);
 									continue;
+								}
 
 								final var touchpadButtonDown = (data[7] & 1 << 2 - 1) != 0;
 								final var down1 = data[35] >> 7 != 0 ? false : true;
@@ -289,11 +297,11 @@ public final class Input {
 	public void deInit() {
 		if (hidDevice != null) {
 			resetDualShock4();
-			try {
+
+			synchronized (hidDevice) {
 				hidDevice.close();
-			} catch (final IllegalStateException e) {
+				hidDevice = null;
 			}
-			hidDevice = null;
 		}
 
 		if (hidServices != null)
@@ -516,14 +524,14 @@ public final class Input {
 	private void rumbleDualShock4(final long duration, final byte strength) {
 		new Thread(() -> {
 			synchronized (dualShock4HidReport) {
-				dualShock4HidReport[5] = strength;
+				dualShock4HidReport[4] = strength;
 				if (sendDualShock4HidReport()) {
 					try {
 						Thread.sleep(duration);
 					} catch (final InterruptedException e) {
 						Thread.currentThread().interrupt();
 					}
-					dualShock4HidReport[5] = 0;
+					dualShock4HidReport[4] = 0;
 					sendDualShock4HidReport();
 				}
 			}
@@ -535,9 +543,9 @@ public final class Input {
 	}
 
 	private boolean sendDualShock4HidReport() {
-		final var bytesSent = hidDevice.write(dualShock4HidReport, dualShock4HidReport.length, (byte) 0x00);
+		final var bytesSent = hidDevice.write(dualShock4HidReport, dualShock4HidReport.length, (byte) 0x05);
 
-		return bytesSent == dualShock4HidReport.length;
+		return bytesSent == dualShock4HidReport.length + 1;
 	}
 
 	public void setAxis(final VirtualAxis virtualAxis, float value, final boolean hapticFeedback,
@@ -700,13 +708,13 @@ public final class Input {
 	private void updateDualShock4LightbarColor() {
 		synchronized (dualShock4HidReport) {
 			if (charging) {
-				dualShock4HidReport[6] = (byte) (batteryState >= 100 ? 0x00 : 0x1C);
-				dualShock4HidReport[7] = (byte) 0x1C;
-				dualShock4HidReport[8] = 0x00;
+				dualShock4HidReport[5] = (byte) (batteryState >= 100 ? 0x00 : 0x1C);
+				dualShock4HidReport[6] = (byte) 0x1C;
+				dualShock4HidReport[7] = 0x00;
 			} else {
-				dualShock4HidReport[6] = (byte) (batteryState <= LOW_BATTERY_WARNING ? 0x1C : 0x00);
-				dualShock4HidReport[7] = 0;
-				dualShock4HidReport[8] = (byte) (batteryState <= LOW_BATTERY_WARNING ? 0x00 : 0x1C);
+				dualShock4HidReport[5] = (byte) (batteryState <= LOW_BATTERY_WARNING ? 0x1C : 0x00);
+				dualShock4HidReport[6] = 0;
+				dualShock4HidReport[7] = (byte) (batteryState <= LOW_BATTERY_WARNING ? 0x00 : 0x1C);
 			}
 
 			sendDualShock4HidReport();
